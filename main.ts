@@ -1,81 +1,95 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 
+import { nameByRace } from 'fantasy-name-generator'
+
 // Remember to rename these classes and interfaces!
 
-interface MyPluginSettings {
+interface RPGToolsSettings {
 	mySetting: string;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
+const DEFAULT_SETTINGS: RPGToolsSettings = {
 	mySetting: 'default'
 }
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+interface INameGeneration {
+	race: string;
+	readableName: string;
+	hasGender: boolean;
+}
+
+const NAME_TYPES: INameGeneration[] = [
+	{ race: "angel", readableName: "Angel", hasGender: true },
+	{ race: "cavePerson", readableName: "Cave Person", hasGender: true },
+	{ race: "darkelf", readableName: "Dark Elf", hasGender: true },
+	{ race: "demon", readableName: "Demon", hasGender: false },
+	{ race: "dragon", readableName: "Dragon", hasGender: true },
+	{ race: "drow", readableName: "Drow", hasGender: true },
+	{ race: "dwarf", readableName: "Dwarf", hasGender: true },
+	{ race: "elf", readableName: "Elf", hasGender: true },
+	{ race: "fairy", readableName: "Fairy", hasGender: true },
+	{ race: "gnome", readableName: "Gnome", hasGender: true },
+	{ race: "goblin", readableName: "Goblin", hasGender: false },
+	{ race: "halfdemon", readableName: "Half Demon", hasGender: true },
+	{ race: "halfling", readableName: "Halfling", hasGender: true },
+	{ race: "highelf", readableName: "High Elf", hasGender: true },
+	{ race: "highfairy", readableName: "High Fairy", hasGender: true },
+	{ race: "human", readableName: "Human", hasGender: true },
+	{ race: "ogre", readableName: "Ogre", hasGender: false },
+	{ race: "orc", readableName: "Orc", hasGender: false },
+]
+
+export default class RPGTools extends Plugin {
+	settings: RPGToolsSettings;
 
 	async onload() {
 		await this.loadSettings();
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
-
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
+		NAME_TYPES.forEach((value: INameGeneration) => {
+			if (value.hasGender) {
+				this.addCommand({
+					id: 'rpg-tools-name-' + value.race,
+					name: `Generate Female ${value.readableName} Name`,
+					editorCallback: (editor: Editor, view: MarkdownView) => {
+						editor.replaceSelection(nameByRace(value.race, { gender: "female" }).toString());
+					}
+				});
+				this.addCommand({
+					id: 'rpg-tools-name-' + value.race,
+					name: `Generate Male ${value.readableName} Name`,
+					editorCallback: (editor: Editor, view: MarkdownView) => {
+						editor.replaceSelection(nameByRace(value.race, { gender: "male" }).toString());
+					}
+				});
+			} else {
+				this.addCommand({
+					id: 'rpg-tools-name-' + value.race,
+					name: `Generate ${value.readableName} Name`,
+					editorCallback: (editor: Editor, view: MarkdownView) => {
+						editor.replaceSelection(nameByRace(value.race).toString());
+					}
+				});
 			}
 		});
-		// This adds an editor command that can perform some operation on the current editor instance
+
+
 		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
+			id: 'rpg-tools-name-multiple',
+			name: 'Generate Multiple Names',
 			checkCallback: (checking: boolean) => {
-				// Conditions to check
 				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
 				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
 					if (!checking) {
-						new SampleModal(this.app).open();
+						new GenerateMultipleNamesModal(this.app).open();
 					}
 
-					// This command will only show up in Command Palette when the check function returns true
 					return true;
 				}
 			}
 		});
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+		this.addSettingTab(new SettingTab(this.app, this));
 	}
 
 	onunload() {
@@ -91,26 +105,86 @@ export default class MyPlugin extends Plugin {
 	}
 }
 
-class SampleModal extends Modal {
+class GenerateMultipleNamesModal extends Modal {
+	selectedRace: string;
+	selectedGender: string;
+	amount: number;
+
 	constructor(app: App) {
 		super(app);
+
+		this.selectedRace = "human";
+		this.selectedGender = "female";
+		this.amount = 5;
 	}
 
 	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
+		const { contentEl } = this;
+
+		contentEl.createEl("h1", { text: "Bulk Generator" });
+
+		new Setting(contentEl).setName("Race").addDropdown((dropdown) => {
+			let records: Record<string, string> = {};
+			NAME_TYPES.forEach((val) => records[val.race] = val.readableName);
+			dropdown.addOptions(records);
+			dropdown.setValue(this.selectedRace);
+			dropdown.onChange(selected => {
+				this.selectedRace = selected;
+			})
+		});
+
+		new Setting(contentEl).setName("Gender").addDropdown((dropdown) => {
+			dropdown.addOptions({
+				"female": "Female",
+				"male": "Male"
+			});
+			dropdown.setValue(this.selectedGender);
+			dropdown.onChange(selected => {
+				this.selectedGender = selected;
+			})
+		});
+
+		new Setting(contentEl).setName("Count").addText((amount) => {
+			amount.setValue(this.amount.toString());
+			amount.setPlaceholder("Count...");
+			amount.onChange((val) => {
+				this.amount = parseInt(val);
+				if (this.amount == 0) {
+					this.amount = 1;
+				}
+			})
+		});
+
+		new Setting(contentEl).addButton((btn) => {
+			btn.setButtonText("Generate!");
+			btn.onClick(() => {
+				let generated: string[] = [];
+				let canGender: boolean = NAME_TYPES.filter((val) => val.race == this.selectedRace)[0].hasGender;
+
+				for (let i: number = 0; i < this.amount; i++) {
+					if (canGender) {
+						generated.push(nameByRace(this.selectedRace, { gender: this.selectedGender }).toString())
+					} else {
+						generated.push(nameByRace(this.selectedRace).toString())
+					}
+				}
+
+				this.app.workspace.getActiveViewOfType(MarkdownView).editor.replaceSelection(generated.join("\n"))
+				this.close();
+			});
+		})
 	}
 
 	onClose() {
-		const {contentEl} = this;
+		const { contentEl } = this;
 		contentEl.empty();
 	}
 }
 
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+class SettingTab extends PluginSettingTab {
+	plugin: RPGTools;
 
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: RPGTools) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
