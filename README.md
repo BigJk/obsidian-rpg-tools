@@ -23,12 +23,15 @@ Various utilities that can be used to faster prep for TTRPG sessions and world b
   - Human
   - Ogre
   - Orc
+- Generate Random Traits & Desires
+- Generate Random NPCs with Traits & Desires
+- Generate Random Establishments with Secret & NPCs
 
 # Usage
 
 ## Generate Random Names
 
-Open the ``command palette`` and use one of the ``RPG Tools: Generate ...`` commands. The name will be inserted at your cursor in the editor.
+Open the ``command palette`` and use one of the ``RPG Tools: Generate ...`` commands. The content will be inserted at your cursor in the editor.
 
 # Installation
 

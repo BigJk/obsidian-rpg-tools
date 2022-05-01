@@ -1,6 +1,7 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 
 import { nameByRace } from 'fantasy-name-generator'
+import * as FCG from "fantasy-content-generator";
 
 // Remember to rename these classes and interfaces!
 
@@ -72,6 +73,70 @@ export default class RPGTools extends Plugin {
 			}
 		});
 
+
+		this.addCommand({
+			id: 'rpg-tools-random-npc',
+			name: `Generate NPC`,
+			editorCallback: (editor: Editor, view: MarkdownView) => {
+				let npc = FCG.NPCs.generate();
+
+				editor.replaceSelection(`# ${npc.formattedData.name}
+
+- ${npc.formattedData.race}, ${npc.formattedData.gender}
+
+## Traits
+
+${npc.formattedData.traits.map(t => '- ' + t).join("\n")}
+
+## Desires
+
+${npc.formattedData.desires.map(t => '- ' + t).join("\n")}`);
+			}
+		});
+
+		this.addCommand({
+			id: 'rpg-tools-random-traits',
+			name: `Generate Traits`,
+			editorCallback: (editor: Editor, view: MarkdownView) => {
+				editor.replaceSelection(FCG.NPCs.generate().formattedData.traits.map(t => '- ' + t).join("\n"));
+			}
+		});
+
+		this.addCommand({
+			id: 'rpg-tools-random-desires',
+			name: `Generate Desires`,
+			editorCallback: (editor: Editor, view: MarkdownView) => {
+				editor.replaceSelection(FCG.NPCs.generate().formattedData.desires.map(t => '- ' + t).join("\n"));
+			}
+		});
+
+		this.addCommand({
+			id: 'rpg-tools-random-establishments',
+			name: `Generate Establishment`,
+			editorCallback: (editor: Editor, view: MarkdownView) => {
+				let establshment = FCG.Establishments.generate().formattedData;
+				editor.replaceSelection(`# ${establshment.type}: ${establshment.name}
+
+## Secret
+
+${establshment.secret}
+
+## NPCs
+
+${establshment.npcs.map(npc => {
+	return `### ${npc.formattedData.name} (${npc.formattedData.race}, ${npc.formattedData.gender})
+
+#### Traits
+
+${npc.formattedData.traits.map(t => '- ' + t).join("\n")}
+
+#### Desires
+
+${npc.formattedData.desires.map(t => '- ' + t).join("\n")}`
+				}).join("\n\n")}
+				`);
+			}
+		});
 
 		this.addCommand({
 			id: 'rpg-tools-name-multiple',
