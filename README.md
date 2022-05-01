@@ -29,8 +29,6 @@ Various utilities that can be used to faster prep for TTRPG sessions and world b
 
 # Usage
 
-## Generate Random Names
-
 Open the ``command palette`` and use one of the ``RPG Tools: Generate ...`` commands. The content will be inserted at your cursor in the editor.
 
 # Installation
