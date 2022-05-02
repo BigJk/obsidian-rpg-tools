@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Editor, FuzzySuggestModal, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, SuggestModal } from 'obsidian';
 
 // Import Templating Engine
 import * as nunjucks from 'nunjucks';
@@ -52,31 +52,12 @@ export default class RPGTools extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		NAME_TYPES.forEach((value: INameGeneration) => {
-			if (value.hasGender) {
-				this.addCommand({
-					id: 'rpg-tools-name-' + value.race,
-					name: `Generate Female ${value.readableName} Name`,
-					editorCallback: (editor: Editor, view: MarkdownView) => {
-						editor.replaceSelection(nameByRace(value.race, { gender: 'female' }).toString());
-					},
-				});
-				this.addCommand({
-					id: 'rpg-tools-name-' + value.race,
-					name: `Generate Male ${value.readableName} Name`,
-					editorCallback: (editor: Editor, view: MarkdownView) => {
-						editor.replaceSelection(nameByRace(value.race, { gender: 'male' }).toString());
-					},
-				});
-			} else {
-				this.addCommand({
-					id: 'rpg-tools-name-' + value.race,
-					name: `Generate ${value.readableName} Name`,
-					editorCallback: (editor: Editor, view: MarkdownView) => {
-						editor.replaceSelection(nameByRace(value.race).toString());
-					},
-				});
-			}
+		this.addCommand({
+			id: 'rpg-tools-name',
+			name: `Generate Name`,
+			editorCallback: (editor: Editor, view: MarkdownView) => {
+				new GenerateNameModal(this.app).open();
+			},
 		});
 
 		this.addCommand({
@@ -177,6 +158,46 @@ export default class RPGTools extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+	}
+}
+
+interface INameGenerationSelection {
+	generator: INameGeneration;
+	gender: string;
+}
+
+class GenerateNameModal extends FuzzySuggestModal<INameGenerationSelection> {
+	getItems(): INameGenerationSelection[] {
+		let all: INameGenerationSelection[] = [];
+
+		NAME_TYPES.forEach((val) => {
+			if (val.hasGender) {
+				all.push({ generator: val, gender: 'Male' });
+				all.push({ generator: val, gender: 'Female' });
+			} else {
+				all.push({ generator: val, gender: '' });
+			}
+		});
+
+		return all;
+	}
+
+	getItemText(generator: INameGenerationSelection): string {
+		if (generator.gender.length > 0) {
+			return generator.gender + ' ' + generator.generator.readableName;
+		}
+		return generator.generator.readableName;
+	}
+
+	onChooseItem(selected: INameGenerationSelection, evt: MouseEvent | KeyboardEvent) {
+		let view = this.app.workspace.getActiveViewOfType(MarkdownView);
+		if (view) {
+			if (selected.gender.length > 0) {
+				view.editor.replaceSelection(nameByRace(selected.generator.race, { gender: selected.gender.toLowerCase() }).toString());
+			} else {
+				view.editor.replaceSelection(nameByRace(selected.generator.race).toString());
+			}
+		}
 	}
 }
 
